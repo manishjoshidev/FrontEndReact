@@ -27,6 +27,7 @@ const DashboardRouter: React.FC = () => {
   if (!user) return null;
 
   const DashboardComponent = {
+    // Maps user roles to components
     admin: AdminDashboard,
     trainer: TrainerDashboard,
     student: StudentDashboard,
@@ -41,6 +42,7 @@ const DashboardRouter: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
+      {/* This is a React Context Provider that wraps the entire app to share authentication state */}
       <Router>
         <Routes>
           <Route path="/" element={<LoginPage />} />

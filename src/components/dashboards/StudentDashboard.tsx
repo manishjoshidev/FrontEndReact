@@ -1,133 +1,103 @@
 import React, { useEffect, useState } from "react";
-import { BookOpen, Award, Clock } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import StudentDailyUpdates from "../StudentDailyUpdates";
 
-interface Course {
-  name: string;
-  progress: number;
-  nextClass: string;
-}
-
-interface Assignment {
+interface Assessment {
+  id: string;
   title: string;
-  due: string;
+  dueDate: string;
   status: string;
-}
-
-interface DashboardData {
-  enrolledCourses: number;
-  achievements: number;
-  studyHours: number;
-  currentCourses: Course[];
-  assignments: Assignment[];
 }
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
-    enrolledCourses: 0,
-    achievements: 0,
-    studyHours: 0,
-    currentCourses: [],
-    assignments: [],
-  });
+  const [assignments, setAssignments] = useState<Assessment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("https://your-backend.com/api/student-dashboard")
-      .then((res) => res.json())
-      .then((data) => setDashboardData(data))
-      .catch((err) => console.error("Error fetching student dashboard:", err));
-  }, []);
+    if (!user?.id) return;
+
+    // Mock data for demonstration
+    const mockData: Assessment[] = [
+      {
+        id: "1",
+        title: "JavaScript Basics",
+        dueDate: "2025-04-15",
+        status: "In Progress",
+      },
+      {
+        id: "2",
+        title: "React Fundamentals",
+        dueDate: "2025-04-20",
+        status: "Not Started",
+      },
+      {
+        id: "3",
+        title: "TypeScript Introduction",
+        dueDate: "2025-04-10",
+        status: "Completed",
+      },
+    ];
+
+    // Simulate API call
+    setTimeout(() => {
+      setAssignments(mockData);
+      setLoading(false);
+    }, 500);
+
+    // In real implementation:
+    // fetch(`/api/students/${user.id}/assessments`)
+    //   .then((res) => res.json())
+    //   .then((data) => setAssignments(data))
+    //   .catch((err) => console.error("Error fetching assessments:", err))
+    //   .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  if (loading) {
+    return <div className="p-6">Loading assessments...</div>;
+  }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Welcome, {user?.name}</h1>
+      <h1 className="text-2xl font-bold mb-6">Student Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <BookOpen className="h-8 w-8 text-blue-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Enrolled Courses</h2>
-          <p className="text-gray-600">Your active courses</p>
-          <p className="text-2xl font-bold mt-4">
-            {dashboardData.enrolledCourses}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <Award className="h-8 w-8 text-green-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Achievements</h2>
-          <p className="text-gray-600">Completed certifications</p>
-          <p className="text-2xl font-bold mt-4">
-            {dashboardData.achievements}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <Clock className="h-8 w-8 text-purple-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Study Hours</h2>
-          <p className="text-gray-600">This month's study time</p>
-          <p className="text-2xl font-bold mt-4">{dashboardData.studyHours}h</p>
-        </div>
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Current Courses</h2>
-            <div className="space-y-4">
-              {dashboardData.currentCourses.map((course, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">{course.name}</span>
-                    <span className="text-sm text-gray-500">
-                      {course.progress}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full"
-                      style={{ width: `${course.progress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Next class: {course.nextClass}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Upcoming Assignments</h2>
-            <div className="space-y-4">
-              {dashboardData.assignments.map((assignment, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center border-b pb-2"
-                >
-                  <div>
-                    <p className="font-medium">{assignment.title}</p>
-                    <p className="text-sm text-gray-500">
-                      Due in {assignment.due}
-                    </p>
-                  </div>
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 className="text-xl font-semibold mb-4">Your Assessments</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {assignments.length === 0 ? (
+            <p>No assessments assigned yet.</p>
+          ) : (
+            assignments.map((assessment) => (
+              <div
+                key={assessment.id}
+                className="bg-gray-50 p-4 rounded shadow-sm border border-gray-200"
+              >
+                <h3 className="text-lg font-semibold mb-2">
+                  {assessment.title}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Due: {assessment.dueDate}
+                </p>
+                <div className="mt-2">
                   <span
-                    className={`text-sm px-2 py-1 rounded ${
-                      assignment.status === "In Progress"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
+                    className={`inline-block px-2 py-1 text-xs rounded ${
+                      assessment.status === "Completed"
+                        ? "bg-green-100 text-green-800"
+                        : assessment.status === "In Progress"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {assignment.status}
+                    {assessment.status}
                   </span>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
+
+      {user && <StudentDailyUpdates userId={user.id} />}
     </div>
   );
 };

@@ -2,69 +2,97 @@ import React, {
   createContext,
   useContext,
   useState,
-  ReactNode,
   useEffect,
+  ReactNode,
 } from "react";
-import { User, AuthState } from "../types/auth";
-import axios from "axios";
 
-interface AuthContextType extends AuthState {
+// Define user type
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "trainer" | "student";
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mock API call - replace with actual API in production
+const mockLogin = async (email: string, password: string): Promise<User> => {
+  // Simulate network request
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  // Demo users
+  const users = {
+    "admin@example.com": {
+      id: "1",
+      name: "Admin User",
+      email: "admin@example.com",
+      role: "admin" as const,
+    },
+    "trainer@example.com": {
+      id: "2",
+      name: "Trainer User",
+      email: "trainer@example.com",
+      role: "trainer" as const,
+    },
+    "student@example.com": {
+      id: "3",
+      name: "Student User",
+      email: "student@example.com",
+      role: "student" as const,
+    },
+  };
+
+  // Check credentials (simple demo logic)
+  if (users[email as keyof typeof users] && password === "password") {
+    return users[email as keyof typeof users];
+  }
+
+  throw new Error("Invalid credentials");
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
-  // Optional: persist login using localStorage
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-    if (storedUser && isAuthenticated) {
-      setAuthState({
-        user: JSON.parse(storedUser),
-        isAuthenticated: true,
-      });
+    // Check for saved session
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
     }
+    setIsAuthReady(true);
   }, []);
 
   const login = async (email: string, password: string) => {
-    try {
-      const response = await axios.post("/api/login", { email, password }); // replace with your real endpoint
-      const user: User = response.data.user;
-
-      setAuthState({
-        user,
-        isAuthenticated: true,
-      });
-
-      // Optionally persist to localStorage
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("isAuthenticated", "true");
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw new Error("Invalid credentials or server error");
-    }
+    const userData = await mockLogin(email, password);
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
   const logout = () => {
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-    });
+    setUser(null);
     localStorage.removeItem("user");
-    localStorage.removeItem("isAuthenticated");
   };
 
+  // Don't render until auth is checked
+  if (!isAuthReady) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated: !!user, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

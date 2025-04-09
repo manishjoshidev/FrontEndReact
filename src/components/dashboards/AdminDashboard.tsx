@@ -1,24 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { Users, BookOpen, UserCheck } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+// src/components/dashboards/AdminDashboard.tsx
+import { useEffect, useState } from "react";
+import { Users, UserCheck, BookOpen } from "lucide-react";
+import AddUserForm from "./AddUserForm"; // Adjust the path as necessary
 
 interface Activity {
-  // Represents a recent activity
   action: string;
   time: string;
 }
 
 interface DashboardData {
-  // Represents the data structure for the dashboard
   studentsCount: number;
   trainersCount: number;
   coursesCount: number;
   activities: Activity[];
 }
 
-const AdminDashboard: React.FC = () => {
-  //
-  const { user } = useAuth();
+const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     studentsCount: 0,
     trainersCount: 0,
@@ -26,17 +23,18 @@ const AdminDashboard: React.FC = () => {
     activities: [],
   });
 
+  const [showAddUser, setShowAddUser] = useState(false);
+
   useEffect(() => {
-    // Replace with your actual backend URL
-    fetch("https://your-backend.com/api/dashboard")
+    fetch("/dashboardData.json") // Make sure this JSON is in `public/`
       .then((res) => res.json())
       .then((data) => setDashboardData(data))
-      .catch((err) => console.error("Error fetching dashboard data:", err));
+      .catch((err) => console.error("Error fetching dashboard data", err));
   }, []);
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Welcome, {user?.name}</h1>
+      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -87,6 +85,19 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Add User Button */}
+      <div className="mt-6">
+        <button
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          onClick={() => setShowAddUser(true)}
+        >
+          Add User
+        </button>
+      </div>
+
+      {/* Modal */}
+      {showAddUser && <AddUserForm onClose={() => setShowAddUser(false)} />}
     </div>
   );
 };
