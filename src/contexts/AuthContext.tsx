@@ -5,13 +5,21 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { jwtDecode } from "jwt-decode"; // ✅ Correct import
 
-// Define user type
+// Define types
 interface User {
   id: string;
   name: string;
   email: string;
   role: "admin" | "trainer" | "student";
+}
+
+interface TokenPayload {
+  sub: string; // user ID
+  emailId: string;
+  role: "admin" | "trainer" | "student";
+  exp: number;
 }
 
 interface AuthContextType {
@@ -23,41 +31,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock API call - replace with actual API in production
-const mockLogin = async (email: string, password: string): Promise<User> => {
-  // Simulate network request
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  // Demo users
-  const users = {
-    "admin@example.com": {
-      id: "1",
-      name: "Admin User",
-      email: "admin@example.com",
-      role: "admin" as const,
-    },
-    "trainer@example.com": {
-      id: "2",
-      name: "Trainer User",
-      email: "trainer@example.com",
-      role: "trainer" as const,
-    },
-    "student@example.com": {
-      id: "3",
-      name: "Student User",
-      email: "student@example.com",
-      role: "student" as const,
-    },
-  };
-
-  // Check credentials (simple demo logic)
-  if (users[email as keyof typeof users] && password === "password") {
-    return users[email as keyof typeof users];
-  }
-
-  throw new Error("Invalid credentials");
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -65,26 +38,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    // Check for saved session
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const token = localStorage.getItem("token");
+
+    if (savedUser && token) {
+      try {
+        const decoded: TokenPayload = jwtDecode(token); // ✅ Correct usage
+
+        const currentTime = Date.now() / 1000;
+        if (decoded.exp < currentTime) {
+          logout(); // Token expired
+        } else {
+          setUser(JSON.parse(savedUser));
+        }
+      } catch (err) {
+        console.error("Invalid token", err);
+        logout();
+      }
     }
+
     setIsAuthReady(true);
   }, []);
 
   const login = async (email: string, password: string) => {
-    const userData = await mockLogin(email, password);
+    const response = await fetch("http://localhost:8080/user/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ emailId: email, password }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Invalid credentials");
+    }
+
+    const data = await response.json(); // { token, emailId }
+
+    const decoded: TokenPayload = jwtDecode(data.token); // ✅ Correct usage
+
+    const userData: User = {
+      id: decoded.sub,
+      name: decoded.emailId.split("@")[0],
+      email: decoded.emailId,
+      role: decoded.role,
+    };
+
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("token", data.token);
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
-  // Don't render until auth is checked
   if (!isAuthReady) {
     return <div>Loading...</div>;
   }
@@ -100,7 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
