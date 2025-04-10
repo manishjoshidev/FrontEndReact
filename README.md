@@ -19,9 +19,7 @@ A React-based frontend project for a School Management System. It includes role-
 
 project-root/ │ ├── src/ │ ├── components/ # Reusable UI components │ ├── pages/ # Login and protected routes │ ├── context/ │ │ └── AuthContext.tsx # Auth state and logic │ ├── App.tsx # Routing │ └── index.tsx # Entry point │ ├── public/ ├── package.json └── README.md
 
-yaml
-Copy
-Edit
+
 
 ---
 
@@ -51,24 +49,17 @@ The app runs at http://localhost:5173 by default (if using Vite).
 🔗 Backend Integration
 The login API is expected at:
 
-bash
-Copy
-Edit
+
 POST http://localhost:8080/user/login
 Request Payload:
 
-json
-Copy
-Edit
 {
   "emailId": "admin@example.com",
-  "password": "yourPassword"
+  "password": "password"
 }
 Response Format:
 
-json
-Copy
-Edit
+
 {
   "token": "JWT_TOKEN",
   "emailId": "admin@example.com"
@@ -78,7 +69,7 @@ Edit
 🧪 Mocking API for Testing (Optional)
 If you don't have a backend yet, you can use:
 
-🔁 Hardcoded login
+
 
 🔧 Mock Service Worker (MSW) for intercepting API calls
 
