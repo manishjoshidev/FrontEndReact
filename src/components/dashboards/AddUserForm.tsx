@@ -7,14 +7,21 @@ interface AddUserFormProps {
 
 const AddUserForm: React.FC<AddUserFormProps> = ({ onClose }) => {
   const [formData, setFormData] = useState({
+    id: "",
     name: "",
     email: "",
+    password: "",
+    phoneNumber: "",
     role: "student",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("New User:", formData); // Replace with actual API or logic
+    console.log("New User:", {
+      ...formData,
+      id: Number(formData.id),
+      phoneNumber: Number(formData.phoneNumber),
+    });
     onClose();
   };
 
@@ -26,6 +33,17 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose }) => {
       >
         <h2 className="text-xl font-semibold mb-4">Add New User</h2>
 
+        {/* ID Field */}
+        <input
+          type="number"
+          placeholder="ID"
+          required
+          className="w-full mb-3 p-2 border rounded"
+          value={formData.id}
+          onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+        />
+
+        {/* Name Field */}
         <input
           type="text"
           placeholder="Name"
@@ -35,6 +53,7 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose }) => {
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
 
+        {/* Email Field */}
         <input
           type="email"
           placeholder="Email"
@@ -44,6 +63,32 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose }) => {
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         />
 
+        {/* Password Field */}
+        <input
+          type="password"
+          placeholder="Password"
+          required
+          className="w-full mb-3 p-2 border rounded"
+          value={formData.password}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
+        />
+
+        {/* Phone Number Field */}
+        <input
+          type="tel"
+          placeholder="Phone Number"
+          required
+          pattern="[0-9]{10}"
+          className="w-full mb-3 p-2 border rounded"
+          value={formData.phoneNumber}
+          onChange={(e) =>
+            setFormData({ ...formData, phoneNumber: e.target.value })
+          }
+        />
+
+        {/* Role Field */}
         <select
           className="w-full mb-4 p-2 border rounded"
           value={formData.role}

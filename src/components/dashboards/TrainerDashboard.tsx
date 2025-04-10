@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import axios from "axios";
 
 interface Student {
   id: string;
@@ -9,102 +10,125 @@ interface Student {
 
 interface Assessment {
   id: string;
-  title: string;
-  dueDate: string;
-  studentId: string;
+  assessmentByTrainer: string;
+  assessmentSubmitted: string;
+  userId: string;
   studentName: string;
   status: string;
 }
 
 const TrainerDashboard: React.FC = () => {
   const { user } = useAuth();
+
   const [students, setStudents] = useState<Student[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [newAssessment, setNewAssessment] = useState({
-    title: "",
-    dueDate: "",
     studentId: "",
+    assessmentByTrainer: user?.name || "",
+    assessmentSubmitted: "",
   });
   const [loading, setLoading] = useState(true);
 
+  const API =
+    import.meta.env.VITE_TRAINER_API || "http://localhost:5678/trainer";
+  // Fetch all assessments and users
+  // This effect runs once when the component mounts
+
   useEffect(() => {
-    // Mock data for demonstration
-    const mockStudents: Student[] = [
-      { id: "1", name: "John Doe", email: "john@example.com" },
-      { id: "2", name: "Jane Smith", email: "jane@example.com" },
-      { id: "3", name: "Bob Johnson", email: "bob@example.com" },
-    ];
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`${API}/allAsses`);
+        const allAssessments = res.data;
 
-    const mockAssessments: Assessment[] = [
-      {
-        id: "1",
-        title: "JavaScript Basics",
-        dueDate: "2025-04-15",
-        studentId: "1",
-        studentName: "John Doe",
-        status: "In Progress",
-      },
-      {
-        id: "2",
-        title: "React Fundamentals",
-        dueDate: "2025-04-20",
-        studentId: "2",
-        studentName: "Jane Smith",
-        status: "Not Started",
-      },
-    ];
+        const uniqueUserIds = [
+          ...new Set(allAssessments.map((a: any) => a.userId)),
+        ];
 
-    // Simulate API calls
-    setTimeout(() => {
-      setStudents(mockStudents);
-      setAssessments(mockAssessments);
-      setLoading(false);
-    }, 500);
+        const studentList: Student[] = [];
 
-    // In real implementation, fetch students and assessments from API
+        for (let id of uniqueUserIds) {
+          try {
+            const userRes = await axios.get(`${API}/fetch/${id}`);
+            const userData = userRes.data.user;
+            studentList.push({
+              id: userData.id.toString(),
+              name: userData.name,
+              email: userData.email,
+            });
+          } catch (err) {
+            console.warn(`Failed to fetch user with id ${id}`);
+          }
+        }
+
+        const enhancedAssessments: Assessment[] = allAssessments.map(
+          (a: any) => {
+            const student = studentList.find(
+              (s) => s.id === a.userId.toString()
+            );
+            return {
+              id: a.id.toString(),
+              assessmentByTrainer: a.assessmentByTrainer,
+              assessmentSubmitted: a.assessmentSubmitted,
+              userId: a.userId.toString(),
+              studentName: student?.name || "Unknown",
+              status: a.status,
+            };
+          }
+        );
+
+        setStudents(studentList);
+        setAssessments(enhancedAssessments);
+      } catch (error) {
+        console.error("Error loading data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [user?.id]);
 
   const handleAssessmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !newAssessment.title ||
-      !newAssessment.dueDate ||
-      !newAssessment.studentId
-    ) {
+    if (!newAssessment.studentId || !newAssessment.assessmentSubmitted) {
       alert("Please fill in all fields");
       return;
     }
 
-    // Find the student name for display
     const student = students.find((s) => s.id === newAssessment.studentId);
 
-    // Create a new assessment object
-    const assessment: Assessment = {
-      id: Date.now().toString(), // temporary ID
-      title: newAssessment.title,
-      dueDate: newAssessment.dueDate,
-      studentId: newAssessment.studentId,
-      studentName: student?.name || "Unknown Student",
+    const payload = {
+      userId: parseInt(newAssessment.studentId),
+      assessmentByTrainer: user?.name || "Trainer",
+      assessmentSubmitted: newAssessment.assessmentSubmitted,
+      remarks: "Assigned by Trainer",
+      marks: 0,
       status: "Not Started",
     };
 
-    // Update local state
-    setAssessments([...assessments, assessment]);
+    try {
+      const res = await axios.post(`${API}/postasses`, payload);
+      const saved = res.data;
 
-    // Reset form
-    setNewAssessment({ title: "", dueDate: "", studentId: "" });
+      const newEntry: Assessment = {
+        id: saved.id.toString(),
+        assessmentByTrainer: saved.assessmentByTrainer,
+        assessmentSubmitted: saved.assessmentSubmitted,
+        userId: saved.userId.toString(),
+        studentName: student?.name || "Unknown",
+        status: saved.status,
+      };
 
-    // In real implementation:
-    // await fetch('/api/assessments', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     ...newAssessment,
-    //     trainerId: user?.id,
-    //     status: 'Not Started'
-    //   })
-    // });
+      setAssessments([...assessments, newEntry]);
+      setNewAssessment({
+        studentId: "",
+        assessmentByTrainer: user?.name || "",
+        assessmentSubmitted: "",
+      });
+    } catch (err) {
+      console.error("Error submitting assessment", err);
+    }
   };
 
   if (loading) {
@@ -122,40 +146,21 @@ const TrainerDashboard: React.FC = () => {
           <form onSubmit={handleAssessmentSubmit} className="space-y-4">
             <div>
               <label
-                htmlFor="title"
+                htmlFor="assessmentSubmitted"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Assessment Title
+                Assessment Description
               </label>
-              <input
-                id="title"
-                type="text"
-                value={newAssessment.title}
-                onChange={(e) =>
-                  setNewAssessment({ ...newAssessment, title: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="dueDate"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Due Date
-              </label>
-              <input
-                id="dueDate"
-                type="date"
-                value={newAssessment.dueDate}
+              <textarea
+                id="assessmentSubmitted"
+                value={newAssessment.assessmentSubmitted}
                 onChange={(e) =>
                   setNewAssessment({
                     ...newAssessment,
-                    dueDate: e.target.value,
+                    assessmentSubmitted: e.target.value,
                   })
                 }
+                rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 required
               />
@@ -209,12 +214,14 @@ const TrainerDashboard: React.FC = () => {
                 <div key={assessment.id} className="p-4 border rounded-md">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-medium">{assessment.title}</h3>
+                      <h3 className="font-medium">
+                        Trainer: {assessment.assessmentByTrainer}
+                      </h3>
                       <p className="text-sm text-gray-600">
                         Student: {assessment.studentName}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Due: {assessment.dueDate}
+                        Remarks: {assessment.assessmentSubmitted}
                       </p>
                     </div>
                     <span
