@@ -1,22 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 import { GraduationCap } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+// Adjust the path as per your project structure
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, user } = useAuth();
   const navigate = useNavigate();
+  const { isAuthenticated, login } = useAuth();
 
   useEffect(() => {
-    // Redirect if already logged in
-    if (user) {
-      navigate("/dashboard");
+    // Redirect if already authenticated
+    if (isAuthenticated && window.location.pathname === "/login") {
+      navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +25,12 @@ const LoginPage: React.FC = () => {
     setError("");
 
     try {
+      // Use the login method from AuthContext which now handles the admin bypass
       await login(email, password);
       navigate("/dashboard");
     } catch (err: any) {
-      console.error(err);
-      setError("Invalid credentials");
+      console.error("Login failed:", err.message);
+      setError("Login failed. Please check credentials or try again later.");
     } finally {
       setLoading(false);
     }
@@ -98,13 +100,6 @@ const LoginPage: React.FC = () => {
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Demo accounts:</p>
-          <p>admin@example.com / password</p>
-          <p>trainer@example.com / password</p>
-          <p>student@example.com / password</p>
-        </div>
       </div>
     </div>
   );

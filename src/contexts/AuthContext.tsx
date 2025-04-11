@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { jwtDecode } from "jwt-decode"; // ✅ Correct import
+import { jwtDecode } from "jwt-decode";
 
 // Define types
 interface User {
@@ -38,12 +38,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
+    // Check for admin bypass first
+    const isAdminBypass = localStorage.getItem("isAdminBypass") === "true";
+
+    if (isAdminBypass) {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (err) {
+          console.error("Invalid user data", err);
+          logout();
+        }
+      }
+      setIsAuthReady(true);
+      return;
+    }
+
+    // Regular token-based auth
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
 
     if (savedUser && token) {
       try {
-        const decoded: TokenPayload = jwtDecode(token); // ✅ Correct usage
+        const decoded: TokenPayload = jwtDecode(token);
 
         const currentTime = Date.now() / 1000;
         if (decoded.exp < currentTime) {
@@ -61,6 +79,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const login = async (email: string, password: string) => {
+    // Special case for admin
+    if (email === "admin@dummy.com" && password === "admin123") {
+      const userData: User = {
+        id: "0",
+        name: "Admin",
+        email: "admin@dummy.com",
+        role: "admin",
+      };
+
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("isAdminBypass", "true");
+      return;
+    }
+
+    // Regular API login
     const response = await fetch("http://localhost:8080/user/login", {
       method: "POST",
       headers: {
@@ -75,7 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     const data = await response.json(); // { token, emailId }
 
-    const decoded: TokenPayload = jwtDecode(data.token); // ✅ Correct usage
+    const decoded: TokenPayload = jwtDecode(data.token);
 
     const userData: User = {
       id: decoded.sub,
@@ -87,12 +121,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("token", data.token);
+    localStorage.removeItem("isAdminBypass"); // Clear admin bypass if they logged in properly
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("isAdminBypass");
   };
 
   if (!isAuthReady) {

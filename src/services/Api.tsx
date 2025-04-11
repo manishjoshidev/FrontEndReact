@@ -15,9 +15,7 @@ export const fetchStudentUpdates = async (
   userId: string
 ): Promise<Update[]> => {
   try {
-    const response = await fetch(
-      `http://localhost:8080/api/student-updates/${userId}`
-    );
+    const response = await fetch(`http://localhost:1234/${userId}`);
     if (!response.ok) throw new Error("Failed to fetch");
 
     const data = await response.json();
