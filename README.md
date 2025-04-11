@@ -1,4 +1,4 @@
-# 🛡️ School Management System - Frontend
+# 🛡️ student Management System - Frontend
 
 A React-based frontend project for a School Management System. It includes role-based authentication (Admin, Trainer, Student) using JWT and Context API.
 
