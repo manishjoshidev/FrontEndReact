@@ -54,8 +54,8 @@ POST http://localhost:8080/user/login
 Request Payload:
 
 {
-  "emailId": "admin@example.com",
-  "password": "password"
+  "emailId": "admin@dummy.com",
+  "password": "admin123"
 }
 Response Format:
 
